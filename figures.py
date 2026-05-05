@@ -5,122 +5,149 @@ from matplotlib.dates import DateFormatter
 import datetime
 import os
 
-def line_plot(means,x_inv, a, b, description=None, savedir = None):
-	"""Function which creates and saves line plots
-	Parameters
-    ----------
 
+def line_plot(means, x_inv, a, b, string=None, description=None, savedir=None, model_name=None, save=False):
+    """
+    Create and save line plot showing fitted slope vs. peak number.
+
+    Parameters
+    ----------
     means : ndarray
-        an array of Gaussian mean times
+        Array of model peak times (centres).
     x_inv : ndarray
-        an array of time values corresponding to predicted curve
-    a : scalar
-    	scalar value of slope of line fit
-    b : scaler
-    	scaler value of line fit y intersect
-   	description : string, optional
-    	name to call file saves
-    savedir : string, optional
-   		directory to save plots to
-	"""
-	peak_no = np.arange(1,len(means)+1)
-	means_edit = means - x_inv[0]
+        Time array used for inverse scaling of GPR.
+    a : float
+        Slope of linear fit (seconds per peak).
+    b : float
+        Intercept of linear fit.
+    string : str, optional
+        String for folder naming.
+    description : str, optional
+        Filename identifier (usually date).
+    savedir : str, optional
+        Directory to save the plot.
+    model_name : str, optional
+        Name of fitted model ("gaussian", "lorentzian", etc.).
+    """
+    peak_no = np.arange(1, len(means) + 1)
+    means_edit = means - x_inv[0]
 
-	fig,ax=plt.subplots(figsize=[10,8])
+    fig, ax = plt.subplots(figsize=[10, 8])
+    model_text = f" ({model_name})" if model_name else ""
+    ax.plot(peak_no, a * peak_no + b, color='crimson',
+            label=f"Slope = {np.round(a, 2)} s{model_text}")
+    ax.scatter(peak_no, means_edit, color='lightpink')
 
-	ax.plot(peak_no, a*peak_no+b, color='crimson',label=f'Slope = {np.round(a,2)} s')
-	ax.scatter(peak_no, means_edit, color='lightpink')
-	
-	ax.set_xlabel('Peak Number', fontsize='xx-large')
-	ax.tick_params(labelsize='xx-large')
+    ax.set_xlabel('Peak Number', fontsize='xx-large')
+    ax.set_ylabel("Time of peak (s)", fontsize='xx-large')
+    ax.tick_params(labelsize='xx-large')
+    plt.legend(fontsize='xx-large')
 
-	ax.set_ylabel("Time of peak in seconds", fontsize='xx-large') 
-	#plt.title('', fontsize='xx-large')
-	plt.legend(fontsize='xx-large')
+    if not description:
+        description = datetime.datetime.now().strftime('%Y%m%d')
 
-	if not description:
-		description = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-	if not savedir:
-		os.makedirs(os.path.expanduser('~/Gaussian_decomp_repository/plots'), exist_ok=True)
-		savedir = os.path.expanduser('~/Gaussian_decomp_repository/plots')
+    # --- Prepare save directory ---
+    # if not savedir:
+    #     base = os.path.expanduser('~/Decomp_repository')
+    #     path = os.path.join(base, f'plots_{string or "default"}')
+    #     os.makedirs(os.path.expanduser(path), exist_ok=True)
+    #     savedir = os.path.expanduser(path)
+    # else:
+    #     os.makedirs(os.path.expanduser(savedir), exist_ok=True)
 
-	savefilename = 'line_plot_' + description + '.pdf'
-	plt.savefig(os.path.join(savedir,savefilename))
-	plt.close()
-	return peak_no, a, b, means_edit
+    # savefilename = f'line_plot_{model_name or "model"}_{description}.jpg'
+    # if save is True:
+    #     plt.savefig(os.path.join(savedir, savefilename))
+    plt.show()
+    return peak_no, a, b, means_edit
 
 
-def gaussian_decomp_plot(time, counts, x_inv, mean_prediction_inv, std_inv, fit, fit_para, resid, yerr, time_earth_format = None, savedir=None, description=None):
-	"""Function which creates and saves Gaussian decomposition
-	Parameters
+def model_decomp_plot(time, counts,
+                      fit, fit_para, resid, yerr, text,
+                      string=None, time_earth_format=None,
+                      savedir=None, description=None, model_name=None, save=False):
+    """
+    Create and save decomposition plot for the fitted model
+    (Gaussian, Lorentzian, or Asymmetric Gaussian).
+
+    Parameters
     ----------
-	time : ndarray
-	        an array of times
+    time : ndarray
+        Time array.
     counts : ndarray
-        an array of data points, can be counts or count rate
-    x_inv :  ndarray 
-    	an array of time values corresponding to predicted curve
-    mean_prediction_inv : ndarray
-    	an array of predicted counts values, from gp regression
-    std_inv : ndarray
-    	an array of predicted curve standard deviation values
+        Observed count data.
     fit : ndarray
-    	an array of linear combination of Gaussians fit
-    fit_para : ndarray	
-    	an array of values of each Gaussian fitted
-	resid : ndarray
-		an array of residual values (the difference between fit and measured counts array)	
+        Model fit (sum of components).
+    fit_para : ndarray
+        Individual component fits.
+    resid : ndarray
+        Residuals (fit - counts).
     yerr : ndarray
-    	an array of error values of measured counts (incl. compression and counting error)
-    time_earth_format : pandas series datetime object, optional
-	    	a pandas series datetime object of the time array (in Earth time if preferable)    
-   	description : string, optional
-    	name to call file saves
-    savedir : string, optional
-   		directory to save plots to
-	"""
+        Count uncertainties.
+    string : str, optional
+        String for folder naming.
+    time_earth_format : pandas.Series datetime, optional
+        Earth time representation of time array.
+    savedir : str, optional
+        Directory to save the plot.
+    description : str, optional
+        Filename identifier.
+    model_name : str, optional
+        Name of fitted model.
+    """
+    fig = plt.figure(figsize=[12, 8], constrained_layout=False)
+    outer_grid = fig.add_gridspec(1, 1, hspace=0.3, wspace=0.2)
+    inner_grid = outer_grid[0, 0].subgridspec(2, 1, hspace=0.0, height_ratios=[1, 0.3])
+    fig0 = fig.add_subplot(inner_grid[0])
+    fig1 = fig.add_subplot(inner_grid[1])
 
-	fig=plt.figure(figsize=[12,8], constrained_layout=False)
-	outer_grid = fig.add_gridspec(1, 1, hspace=0.3, wspace=0.2)
+    time_arr = time_earth_format if time_earth_format is not None else time
 
-	inner_grid = outer_grid[0,0].subgridspec(2,1, wspace=0.0, hspace=0.0, height_ratios=[1,0.3])
-	fig0 = fig.add_subplot(inner_grid[0])
-	fig1 = fig.add_subplot(inner_grid[1])
-	
-	if time_earth_format is None:
-		time_arr = time
+    # --- Top panel: data + model fit ---
+    fig0.errorbar(time_arr, counts, label=r"STIX count rate", zorder=0)
+    fig0.fill_between(time_arr, counts - yerr, counts + yerr, alpha=0.5, label='Error', zorder=0)
 
-	else:
-		time_arr = time_earth_format
 
-	fig0.errorbar(time_arr, counts, yerr=yerr, label='STIX 22-76 keV',zorder=0)
-#	fig0.plot(time_arr, mean_prediction_inv.reshape(-1), label='Mean prediction',zorder=1)
+    label_text = (
+        f"Linear combination of {model_name or 'Gaussians'}"
+        f"\n α = {text[0]:.2f}" if text[0] is not None else ""
+    )
+    fig0.plot(time_arr, fit, label=label_text, linewidth=3, zorder=3)
 
-	fig0.plot(time_arr, fit, label='Linear combination of Gaussians', linewidth='3', zorder=3)
-	for i in range(len(fit_para)):
-	    fig0.plot(time_arr,fit_para[i],'--')
-	fig0.legend(fontsize='xx-large')
-	fig0.set_ylabel('Count Rate', fontsize='xx-large')
+    # Plot each component if provided
+    if fit_para is not None and len(fit_para.shape) > 1:
+        for i in range(len(fit_para)):
+            fig0.plot(time_arr, fit_para[i], '--', linewidth=1.5)
 
-	fig1.plot(time_arr,resid/yerr,'x')
-	fig1.plot(time_arr, [0 for i in range(len(time_arr))], linewidth='3')
-	fig1.set_ylabel('Residual', fontsize='xx-large')
-	fig1.set_ylim(-6,6)
-	#fig1.xaxis.set_major_formatter(DateFormatter("%H:%M:%S"))
-	#fig0.xaxis.set_major_formatter(DateFormatter("%H:%M:%S"))
-	fig0.tick_params(labelsize='xx-large')
-	fig1.tick_params(labelsize='xx-large')
+    fig0.set_title(f"{model_name or 'Gaussian'} fit", fontsize='xx-large')
+    fig0.legend(fontsize='large')
+    fig0.set_ylabel('Count Rate', fontsize='xx-large')
+    fig0.tick_params(labelsize='xx-large')
 
-	if not description:
-		description = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-	if not savedir:
-		os.makedirs(os.path.expanduser('~/Gaussian_decomp_repository/plots'), exist_ok=True)
-		savedir = os.path.expanduser('~/Gaussian_decomp_repository/plots')
+    # --- Bottom panel: residuals ---
+    fig1.plot(time_arr, resid / yerr, 'x', label='Residuals / σ')
+    fig1.axhline(0, color='black', linewidth=2)
+    fig1.set_ylabel('Residual', fontsize='xx-large')
+    fig1.set_ylim(-6, 6)
+    fig1.tick_params(labelsize='xx-large')
 
-	savefilename = 'gaussian_decomp_plot_' + description + '.pdf'
-	plt.savefig(os.path.join(savedir,savefilename))
-	plt.close()
+    if not description:
+        description = datetime.datetime.now().strftime('%Y%m%d')
 
-	return np.std(resid/yerr)
+    # --- Prepare save directory ---
+    # if not savedir:
+    #     base = os.path.expanduser('~/Decomp_repository')
+    #     path = os.path.join(base, f'plots_{string or "default"}')
+    #     os.makedirs(os.path.expanduser(path), exist_ok=True) if save is True else None
+    #     savedir = os.path.expanduser(path)
+    # else:
+    #     os.makedirs(os.path.expanduser(savedir), exist_ok=True) if save is True else None
+
+    # savefilename = f'{model_name or "model"}_decomp_plot_{description}.jpg'
+    # if save is True:
+    #     plt.savefig(os.path.join(savedir, savefilename))
+    plt.show()
+
+    return np.std(resid / yerr)
 
 
