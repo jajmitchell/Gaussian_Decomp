@@ -1,4 +1,3 @@
-from pyexpat import model
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import spearmanr, pearsonr
