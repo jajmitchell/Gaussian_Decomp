@@ -9,6 +9,6 @@ setuptools.setup(
     description="A package for finding oscillations in timeseries",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/hannahc243/Gaussian_Decomp.git",
+    url="https://github.com/Gaussian_Decomp",
     packages=["Gaussian_Decomp"],
 )
