@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Gaussian_Decomp",
+    name="Gaussian_Decomposition",
     author="Hannah Collier",
     description="A package for finding oscillations in timeseries",
     long_description=long_description,
