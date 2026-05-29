@@ -1,6 +1,6 @@
-from gp_regression import *
-from gaussian_fit import peak_finder, guess_fn, bounds, multi_model_fit, single_model_fit, line_fit, decompose_components
-from figures import model_decomp_plot, line_plot
+from Gaussian_Decomp.gp_regression import *
+from Gaussian_Decomp.gaussian_fit import peak_finder, guess_fn, bounds, multi_model_fit, single_model_fit, line_fit, decompose_components
+from Gaussian_Decomp.figures import model_decomp_plot, line_plot
 import numpy as np
 import json
 import pickle
